@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>نقطة تحول | مسابقة كيان</title>
+    <meta name="description" content="لوحة نقاط مسابقة نقطة تحول - كيان. سجّل باسمك لمتابعة نقاطك وترتيبك." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800;900&display=swap" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      :root { --pink: #f0a6bd; --pink-deep: #c4547f; --ink: #120a10; }
+      body { font-family: "Cairo", system-ui, sans-serif; background:
+        radial-gradient(900px 500px at 50% -10%, #35172a 0%, transparent 60%), #0d0710; color: #fff; }
+      .card { background: rgba(255,255,255,.045); border: 1px solid rgba(240,166,189,.18);
+        backdrop-filter: blur(10px); }
+      .glow { box-shadow: 0 20px 60px -20px rgba(196,84,127,.7); }
+      .btn { transition: .2s; }
+      .btn:hover { transform: translateY(-1px); }
+    </style>
+  </head>
+  <body class="min-h-screen">
+    <div id="app" class="mx-auto max-w-4xl px-4 py-10"></div>
+    <footer class="pb-8 text-center text-xs text-white/40">
+      <p>Made by <span class="font-bold" style="color:var(--pink)">CTZ</span> for web services</p>
+      <p class="mt-1">Owned by <span class="font-bold text-white/60">Nidal Ahmed</span> &amp; <span class="font-bold text-white/60">Abdelrahman Mohamed</span></p>
+    </footer>
+
+    <script>
+      // ==== CONFIG ====
+      const API = "/api/scores"; // your Vercel serverless function
+      const OPERATOR_WORD = "opp";
+
+      const T = {
+        ar: { title:"نقطة تحول", sub:"مسابقة كيان — الإصدار الأول", nameLabel:"ادخل اسمك",
+          namePh:"مثال: الاسم الثلاثي", enter:"دخول", guest:"الدخول كضيف", lb:"لوحة الصدارة",
+          myPoints:"نقاطي", rank:"الترتيب", pts:"نقطة", logout:"خروج", notFound:"هذا الاسم غير مسجل، تواصل مع المشرف",
+          op:"لوحة المشرف", add:"إضافة عضو", newName:"الاسم الجديد", points:"النقاط", save:"حفظ",
+          del:"حذف", member:"عضو مجموعة كيان", guestNote:"أنت تتصفح كضيف — لا يمكنك رؤية نقاط شخصية",
+          lang:"English", edit:"تعديل", back:"رجوع" },
+        en: { title:"Noqta Tahawol", sub:"Kayan Competition — First Edition", nameLabel:"Enter your name",
+          namePh:"e.g. Scout Ahmed Mohamed", enter:"Enter", guest:"Continue as guest", lb:"Leaderboard",
+          myPoints:"My points", rank:"Rank", pts:"pts", logout:"Log out", notFound:"This name is not registered, contact the operator",
+          op:"Operator panel", add:"Add member", newName:"New name", points:"Points", save:"Save",
+          del:"Delete", member:"Kayan member", guestNote:"You are browsing as a guest — personal points hidden",
+          lang:"العربية", edit:"Edit", back:"Back" },
+      };
+
+      let state = { lang: "ar", view: "login", user: null, members: [], msg: "", opKey: OPERATOR_WORD };
+      const t = (k) => T[state.lang][k];
+      const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+
+      async function api(payload) {
+        const r = await fetch(API, payload ? { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(payload) } : {});
+        return r.json();
+      }
+      async function load() { const d = await api(); state.members = d.members || []; render(); }
+
+      function medal(i) { return ["🥇","🥈","🥉"][i] || i + 1; }
+
+      function header() {
+        return `<header class="mb-8 text-center">
+          <div class="mx-auto mb-4 h-24 w-24 rounded-full glow" style="background:linear-gradient(135deg,var(--pink),var(--pink-deep));display:flex;align-items:center;justify-content:center;font-size:34px">🧭</div>
+          <h1 class="text-4xl font-black tracking-tight" style="color:var(--pink)">${t("title")}</h1>
+          <p class="mt-1 text-sm text-white/60">${t("sub")}</p>
+          <button onclick="toggleLang()" class="btn mt-4 rounded-full border border-white/15 px-4 py-1.5 text-xs text-white/80 hover:bg-white/10">🌐 ${t("lang")}</button>
+        </header>`;
+      }
+
+      function board() {
+        return `<div class="card glow rounded-3xl p-5">
+          <h2 class="mb-4 text-lg font-bold" style="color:var(--pink)">${t("lb")}</h2>
+          <div class="space-y-2">
+            ${state.members.map((m,i)=>`
+              <div class="flex items-center justify-between rounded-2xl px-4 py-3 ${state.user && state.user.name===m.name ? "bg-[rgba(240,166,189,.16)] border border-[rgba(240,166,189,.4)]" : "bg-white/5"}">
+                <div class="flex items-center gap-3">
+                  <span class="w-8 text-center text-lg font-bold text-white/70">${medal(i)}</span>
+                  <span class="font-semibold">${esc(m.name)}</span>
+                </div>
+                <span class="rounded-full px-3 py-1 text-sm font-bold" style="background:linear-gradient(135deg,var(--pink),var(--pink-deep));color:#25101b">${m.points}</span>
+              </div>`).join("")}
+          </div>
+        </div>`;
+      }
+
+      function render() {
+        const app = document.getElementById("app");
+        document.documentElement.lang = state.lang;
+        document.documentElement.dir = state.lang === "ar" ? "rtl" : "ltr";
+
+        if (state.view === "login") {
+          app.innerHTML = header() + `
+            <div class="card glow mx-auto max-w-md rounded-3xl p-6">
+              <label class="mb-2 block text-sm text-white/70">${t("nameLabel")}</label>
+              <input id="nameInput" placeholder="${t("namePh")}" class="w-full rounded-2xl bg-white/10 px-4 py-3 outline-none placeholder:text-white/30 focus:ring-2" style="--tw-ring-color:var(--pink)" />
+              ${state.msg ? `<p class="mt-2 text-sm text-red-300">${esc(state.msg)}</p>` : ""}
+              <button onclick="doLogin()" class="btn mt-4 w-full rounded-2xl py-3 font-bold" style="background:linear-gradient(135deg,var(--pink),var(--pink-deep));color:#25101b">${t("enter")}</button>
+              <button onclick="state.user=null;state.view='board';render()" class="btn mt-2 w-full rounded-2xl border border-white/15 py-3 text-sm text-white/80 hover:bg-white/10">${t("guest")}</button>
+            </div>`;
+          const el = document.getElementById("nameInput");
+          el.addEventListener("keydown", (e) => e.key === "Enter" && doLogin());
+          el.focus();
+          return;
+        }
+
+        if (state.view === "board") {
+          const i = state.members.findIndex((m) => m.name === (state.user && state.user.name));
+          app.innerHTML = header() + `
+            ${state.user ? `<div class="card glow mb-5 rounded-3xl p-6 text-center">
+                <p class="text-sm text-white/60">${t("member")}</p>
+                <p class="mt-1 text-2xl font-black">${esc(state.user.name)}</p>
+                <div class="mt-4 flex justify-center gap-3">
+                  <div class="rounded-2xl bg-white/5 px-6 py-3"><p class="text-xs text-white/60">${t("myPoints")}</p><p class="text-2xl font-black" style="color:var(--pink)">${state.members[i] ? state.members[i].points : 0}</p></div>
+                  <div class="rounded-2xl bg-white/5 px-6 py-3"><p class="text-xs text-white/60">${t("rank")}</p><p class="text-2xl font-black" style="color:var(--pink)">#${i + 1}</p></div>
+                </div>
+              </div>`
+            : `<p class="mb-5 rounded-2xl bg-white/5 p-3 text-center text-sm text-white/60">${t("guestNote")}</p>`}
+            ${board()}
+            <button onclick="logout()" class="btn mx-auto mt-6 block rounded-full border border-white/15 px-5 py-2 text-sm text-white/70 hover:bg-white/10">${t("logout")}</button>`;
+          return;
+        }
+
+        // operator
+        app.innerHTML = header() + `
+          <div class="card glow rounded-3xl p-5">
+            <h2 class="mb-4 text-lg font-bold" style="color:var(--pink)">${t("op")}</h2>
+            <div class="mb-5 flex flex-wrap gap-2">
+              <input id="opName" placeholder="${t("newName")}" class="flex-1 rounded-2xl bg-white/10 px-4 py-2 outline-none" />
+              <input id="opPts" type="number" value="0" class="w-24 rounded-2xl bg-white/10 px-4 py-2 outline-none" />
+              <button onclick="addMember()" class="btn rounded-2xl px-5 py-2 font-bold" style="background:linear-gradient(135deg,var(--pink),var(--pink-deep));color:#25101b">${t("add")}</button>
+            </div>
+            <div class="space-y-2">
+              ${state.members.map((m, i) => `
+                <div class="flex flex-wrap items-center gap-2 rounded-2xl bg-white/5 px-3 py-2">
+                  <span class="w-6 text-center text-white/50">${i + 1}</span>
+                  <input value="${esc(m.name)}" id="n${i}" class="min-w-0 flex-1 rounded-xl bg-white/10 px-3 py-2 outline-none" />
+                  <input value="${m.points}" id="p${i}" type="number" class="w-24 rounded-xl bg-white/10 px-3 py-2 outline-none" />
+                  <button onclick="saveMember(${i},'${esc(m.name).replace(/'/g, "\\'")}')" class="btn rounded-xl bg-white/15 px-3 py-2 text-sm">${t("save")}</button>
+                  <button onclick="delMember('${esc(m.name).replace(/'/g, "\\'")}')" class="btn rounded-xl bg-red-500/25 px-3 py-2 text-sm text-red-200">${t("del")}</button>
+                </div>`).join("")}
+            </div>
+            <div class="mt-6 flex gap-2">
+              <button onclick="state.view='board';render()" class="btn rounded-full border border-white/15 px-5 py-2 text-sm text-white/70 hover:bg-white/10">${t("back")}</button>
+              <button onclick="logout()" class="btn rounded-full bg-red-500/20 px-5 py-2 text-sm text-red-200 hover:bg-red-500/30">${t("logout")}</button>
+            </div>
+          </div>`;
+      }
+
+      async function doLogin() {
+        const v = document.getElementById("nameInput").value.trim();
+        if (v.toLowerCase() === OPERATOR_WORD) { state.view = "operator"; state.msg = ""; return render(); }
+        const d = await api({ action: "login", name: v });
+        if (d.user) { state.user = d.user; state.view = "board"; state.msg = ""; }
+        else state.msg = t("notFound");
+        render();
+      }
+      async function addMember() {
+        const d = await api({ action: "add", key: state.opKey, name: document.getElementById("opName").value, points: document.getElementById("opPts").value });
+        if (d.members) state.members = d.members;
+        render();
+      }
+      async function saveMember(i, oldName) {
+        const d = await api({ action: "update", key: state.opKey, name: oldName, newName: document.getElementById("n" + i).value, points: document.getElementById("p" + i).value });
+        if (d.members) state.members = d.members;
+        render();
+      }
+      async function delMember(name) {
+        const d = await api({ action: "delete", key: state.opKey, name });
+        if (d.members) state.members = d.members;
+        render();
+      }
+      function toggleLang() { state.lang = state.lang === "ar" ? "en" : "ar"; render(); }
+      function logout() { state.user = null; state.view = "login"; state.msg = ""; render(); }
+
+      load();
+    </script>
+  </body>
+</html>
